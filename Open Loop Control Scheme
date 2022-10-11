@@ -1,0 +1,70 @@
+// Kode pemodelan sistem lup terbuka motor DC
+// Sistem Kendali Digital: Dede Irawan Saputra, S.Pd., M.T.
+// Teknik Elektro Universitas Jenderal Achmad Yani
+// 2020
+// ---------------------------------------------------------
+
+#define ENCA 2 // YELLOW
+#define ENCB 3 // WHITE
+#define ENA 10
+#define IN2 9
+#define IN1 8
+
+int pulsa = 0;
+long Ts = 100;
+unsigned long currT = 0;
+unsigned long prevT = 0;
+float rpm, rps;
+float PulsePerRev = 48.00;
+
+// timer baru
+float Time = 0;
+float elapsedTime;
+float timePrev = 0;
+float t;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENCA, INPUT);
+  pinMode(ENCB, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
+}
+
+void loop() {
+  t += elapsedTime;
+  
+  currT = millis();
+  // membaca sensor --------------------
+  if (currT - prevT == Ts) {
+    rps = (pulsa / PulsePerRev)/0.1;
+    rpm = rps * 60;
+    pulsa = 0;
+    prevT = currT;
+        
+    Serial.print(t,2);
+    Serial.print(" ");
+    Serial.print("250");
+    Serial.print(" ");
+    Serial.println(rpm);
+  }
+  // ----------------------------------
+  Writepwm();
+  
+  //TIMER
+  timePrev = Time;                            // the previous time is stored before the actual time read
+  Time = millis();                            // actual time read
+  elapsedTime = (Time - timePrev) / 1000;
+}
+
+void readEncoder() {
+  pulsa++;
+}
+
+void Writepwm() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, 255);
+}
