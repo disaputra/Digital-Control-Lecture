@@ -29,6 +29,12 @@ float deltaT;
 float u, e;
 int SetPoint;
 
+// timer 
+float Time;
+float elapsedTime;
+float timePrev;
+float t;
+
 void setup() {
   Serial.begin(115200);
   pinMode(ENCA, INPUT);
@@ -40,6 +46,7 @@ void setup() {
 }
 
 void loop() {
+  t += elapsedTime;
   currT = millis();
   if (currT - prevT == interval) {
     rps = (pulsa / PulsePerRev)/0.1;
@@ -60,14 +67,18 @@ void loop() {
     Serial.println(rpm);
   }
   Writepwm();
+  
+  timePrev = Time;                            // the previous time is stored before the actual time read
+  Time = micros();                            // actual time read
+  elapsedTime = (Time - timePrev) / 1.0e6;
 }
-
+  
 void readEncoder() {
   pulsa++;
 }
 
 void Pid() {
-  SetPoint = 150;
+  SetPoint = 200;
 
   //PID Constants
   kp = 6.5681790762836;
