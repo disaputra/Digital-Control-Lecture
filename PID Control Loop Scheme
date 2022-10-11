@@ -1,0 +1,109 @@
+// Kode aplikasi sistem lup tertutup motor DC dengan pengendali PID
+// Sistem Kendali Digital: Dede Irawan Saputra, S.Pd., M.T.
+// Teknik Elektro Universitas Jenderal Achmad Yani
+// 2020
+// ---------------------------------------------------------
+
+#define ENCA 2 // YELLOW
+#define ENCB 3 // WHITE
+#define PWM 10
+#define IN2 9
+#define IN1 8
+
+int pulsa = 0;
+int interval = 100;
+unsigned long currT;
+unsigned long prevT;
+float rpm, rps;
+float PulsePerRev = 48.00;
+float PwmValue;
+
+//PID
+float kp, ki, kd;
+long CurrTime;
+long PrevTime;
+float ePrev;
+float eIntegral;
+float dedt;
+float deltaT;
+float u, e;
+int SetPoint;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENCA, INPUT);
+  pinMode(ENCB, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(PWM, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
+}
+
+void loop() {
+  currT = millis();
+  if (currT - prevT == interval) {
+    rps = (pulsa / PulsePerRev)/0.1;
+    rpm = rps * 60;
+    pulsa = 0;
+    prevT = currT;
+
+    e = SetPoint - rpm;
+    Pid();
+    Serial.print(t,2);
+    Serial.print(" ");
+    Serial.print(SetPoint);
+    Serial.print(" ");
+    Serial.print(PwmValue);
+    Serial.print(" ");
+    Serial.print(e);
+    Serial.print(" ");
+    Serial.println(rpm);
+  }
+  Writepwm();
+}
+
+void readEncoder() {
+  pulsa++;
+}
+
+void Pid() {
+  SetPoint = 150;
+
+  //PID Constants
+  kp = 6.5681790762836;
+  ki = 0.788730655885121;
+  kd = 0;
+
+  //Time Difference
+  CurrTime = micros();
+  deltaT = (CurrTime - PrevTime)/(1.0e6);
+  PrevTime = CurrTime;
+
+  //Error
+  float e = SetPoint - rpm;
+
+  //Derevative
+  dedt = (e-ePrev)/(deltaT);
+
+  //Integral
+  eIntegral = eIntegral + e*deltaT;
+
+  //Control Signal
+  u = kp*e +ki*eIntegral + kd*dedt;
+
+  //Motor Power
+  PwmValue = fabs(u);
+  if (PwmValue > 255) {
+    PwmValue = 255;
+  }
+
+  if(u < 0) {
+    PwmValue = 0;
+  }
+}
+
+void Writepwm() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(PWM, PwmValue);
+}
