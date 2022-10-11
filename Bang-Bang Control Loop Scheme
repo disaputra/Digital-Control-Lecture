@@ -1,0 +1,99 @@
+// Kode aplikasi bang-bang controller motor DC (on-off control loop)
+// Sistem Kendali Digital: Dede Irawan Saputra, S.Pd., M.T.
+// Teknik Elektro Universitas Jenderal Achmad Yani
+// 2020
+// ---------------------------------------------------------
+
+#define ENCA 2 // YELLOW
+#define ENCB 3 // WHITE
+#define PWM 10
+#define IN2 9
+#define IN1 8
+
+int pulsa = 0;
+int Ts = 100;
+unsigned long currT;
+unsigned long prevT;
+float deltaT;
+float rpm, rps;
+float PwmValue;
+float PulsePerRev = 48.00;
+
+// closed loop
+long CurrTime;
+long PrevTime;
+float eprev;
+float e;
+int SetPoint;
+
+// timer 
+float Time;
+float elapsedTime;
+float timePrev;
+float t;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(ENCA, INPUT);
+  pinMode(ENCB, INPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(PWM, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(ENCA), readEncoder, RISING);
+}
+
+void loop() {
+  t += elapsedTime;
+
+  currT = millis();
+  if (currT - prevT == Ts) {
+    rps = (pulsa / PulsePerRev)/0.1;
+    rpm = rps * 60;
+    pulsa = 0;
+    prevT = currT;
+    
+    e = SetPoint - rpm;
+    bangBang();
+    Serial.print(t,2);
+    Serial.print(" ");
+    Serial.print(SetPoint);
+    Serial.print(" ");
+    Serial.print(PwmValue);
+    Serial.print(" ");
+    Serial.print(e);
+    Serial.print(" ");
+    Serial.println(rpm);
+  }
+  Writepwm();
+  
+  //TIMER
+  timePrev = Time;                            // the previous time is stored before the actual time read
+  Time = micros();                            // actual time read
+  elapsedTime = (Time - timePrev) / 1.0e6;
+
+}
+
+void readEncoder() {
+  pulsa++;
+}
+
+void bangBang() {
+  SetPoint = 200;
+
+  //Error
+  float e = SetPoint - rpm;
+
+  // bang-bang controller
+  if (e > 0) {
+    PwmValue = 255;
+  }
+  if(e < 0) {
+    PwmValue = 0;
+  }
+}
+
+void Writepwm() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(PWM, PwmValue);
+}
